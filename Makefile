@@ -1,4 +1,3 @@
-
 TARGET_ARCH=`uname -m`
 TARGET_OS=`uname -s`
 TARGET_VERSION=`uname -r`
@@ -18,48 +17,48 @@ TAR_OUT=mlton-bootstrap-${TARGET_OS}-${TARGET_VERSION}-${TARGET_ARCH}.tar.gz
 generate_bootstrap: gitclone compile1 clean-compiler compile2 archive
 
 clean:
-        rm -rf ${SRC_DIR}
-        rm -rf ${OUT_DIR}
-        rm -f ${TAR_OUT}
+	rm -rf ${SRC_DIR}
+	rm -rf ${OUT_DIR}
+	rm -f ${TAR_OUT}
 
 gitclone:
 .if ! exists(${SRC_DIR})
-                git clone --branch ${GIT_BRANCH} ${MLTON_GIT_REPO} ${SRC_DIR}
+	git clone --branch ${GIT_BRANCH} ${MLTON_GIT_REPO} ${SRC_DIR}
 .else
-                cd ${SRC_DIR} && git pull origin ${GIT_BRANCH}; git checkout ${GIT_BRANCH}
+	cd ${SRC_DIR} && git pull origin ${GIT_BRANCH}; git checkout ${GIT_BRANCH}
 .endif
 
 compile1:
-        ulimit -d 9999999 ; ${MAKE} -C ${SRC_DIR}
+	ulimit -d 9999999 ; ${MAKE} -C ${SRC_DIR}
 
 clean-compiler:
-        cd ${SRC_DIR}/mlton && ../../${MAKE} clean
-        cd ${SRC_DIR}/mlton && rm -f mlton-compile
+	cd ${SRC_DIR}/mlton && ../../${MAKE} clean
+	cd ${SRC_DIR}/mlton && rm -f mlton-compile
 
 compile2:
-        # Recompile from source again, but using the compiler we've created just now. 
-        # Preserve and archive C sources during the second round of compilation, 
-        # to reuse them on the target system.
-        ulimit -d 9999999 ; PATH=${PATH}:../build/bin/ COMPILE_ARGS=" -keep g " ${MAKE} -C ${SRC_DIR}
+	# Recompile from source again, but using the compiler we've created just now. 
+	# Preserve and archive C sources during the second round of compilation, 
+	# to reuse them on the target system.
+	ulimit -d 9999999 ; PATH=${PATH}:../build/bin/ COMPILE_ARGS=" -keep g " ${MAKE} -C ${SRC_DIR}
 
 archive:
 .if exists(${OUT_DIR})
-        rm -rf ${OUT_DIR}
+	rm -rf ${OUT_DIR}
 .endif
-        mkdir ${OUT_DIR}
-        cp ${SRC_DIR}/mlton/*.c ${OUT_DIR}
-        cp ${SRC_DIR}/mlyacc/src/yacc.grm.* ${OUT_DIR}
-        cp Makefile ${OUT_DIR}
-        cp README ${OUT_DIR}
-        tar zcf ${TAR_OUT} ${OUT_DIR}
+	mkdir ${OUT_DIR}
+	cp ${SRC_DIR}/mlton/*.c ${OUT_DIR}
+	cp ${SRC_DIR}/mlyacc/src/yacc.grm.* ${OUT_DIR}
+	cp Makefile ${OUT_DIR}
+	cp README ${OUT_DIR}
+	tar zcf ${TAR_OUT} ${OUT_DIR}
 
 C_SRC != ls -1 *.c
 OBJS = ${C_SRC:.c=.o}
 
 .SUFFIXES: .c .o
 .c.o:
-        gcc -std=gnu99 -c -O1 -w -m64 -I../build/lib/targets/self/include/ -I../build/lib/include/ -fPIC -fno-common -fno-strict-aliasing -fomit-frame-pointer -o ${<:S/.c/.o/} $<
+	gcc -std=gnu99 -c -O1 -w -m64 -I../build/lib/targets/self/include/ -I../build/lib/include/ -I/usr/local/include -fPIC -fno-common -fno-strict-aliasing -fomit-frame-pointer -o ${<:S/.c/.o/} $<
 
 # Output of `compile_bootstrap' is `mlton-compile' executable
 compile_bootstrap: ${OBJS}
-        gcc -o mlton-compile $(OBJS) -L../build/lib/targets/self -lmlton -lgdtoa -lm -lgmp -m64
+	gcc -o mlton-compile $(OBJS) -L../build/lib/targets/self -L/usr/local/lib -lmlton -lgdtoa -lm -lgmp -m64
